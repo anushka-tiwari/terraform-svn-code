@@ -1,6 +1,6 @@
     - name:  execute the script to register the satellite repo
       shell: |
-        /bin/bash /opt/pv/sources/satellite_register_client.sh
+        /bin/bash /opt/xyz/sources/satellite_register_client.sh
       args:
         executable: /bin/bash
 

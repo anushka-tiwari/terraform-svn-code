@@ -28,7 +28,7 @@ data "aws_subnets" "subnets" {
 # Data source to fetch the ACM certificate based on domain name
 data "aws_acm_certificate" "ssl_certificate" {
 
-  domain      = "*.pvgroup.intranet"
+  domain      = "*.xyz.intranet"
   key_types   = ["RSA_2048"]
   statuses    = ["ISSUED"]
   most_recent = true

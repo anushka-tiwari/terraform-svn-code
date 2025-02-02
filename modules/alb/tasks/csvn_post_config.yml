@@ -39,7 +39,7 @@
 
 - name: Create a symbolic link for data
   file:
-    src: /opt/pv/data/CollabNet_Subversion/data
+    src: /opt/xyz/data/CollabNet_Subversion/data
     dest: /data
     state: link
 
@@ -83,11 +83,11 @@
 
 - name: Insert below lines LDAP Verify in httpd.conf
   lineinfile:
-    path: /opt/pv/data/CollabNet_Subversion/data/conf/httpd.conf
+    path: /opt/xyz/data/CollabNet_Subversion/data/conf/httpd.conf
     insertbefore: '^# Optimization for P&V'
     line: |
       LDAPVerifyServerCert On
-      LDAPTrustedGlobalCert CA_BASE64 /etc/pki/ca-trust/source/anchors/PVSPPKI01_CA.pem
+      LDAPTrustedGlobalCert CA_BASE64 /etc/pki/ca-trust/source/anchors/ABCPPKI01_CA.pem
 
 - name: Enable the csvn service to start on boot
   systemd:

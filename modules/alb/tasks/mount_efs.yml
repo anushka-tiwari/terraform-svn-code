@@ -1,6 +1,6 @@
-- name: Create the SVN mount directory in /opt/pv/data
+- name: Create the SVN mount directory in /opt/XYZ/data
   file:
-    path: /opt/pv/data/CollabNet_Subversion
+    path: /opt/xyz/data/CollabNet_Subversion
     state: directory
     owner: csvn
     group: csvn
@@ -26,7 +26,7 @@
 - name: Mount the EFS file system
   lineinfile:
     path: /etc/fstab
-    line: "{{ efs_id }}.efs.eu-central-1.amazonaws.com:/ /opt/pv/data/CollabNet_Subversion nfs4 defaults,_netdev 0 0"
+    line: "{{ efs_id }}.efs.eu-central-1.amazonaws.com:/ /opt/xyz/data/CollabNet_Subversion nfs4 defaults,_netdev 0 0"
     state: present
     create: yes
 
@@ -46,7 +46,7 @@
 
 - name: Mount the SVN EFS file system
   mount:
-    path: /opt/pv/data/CollabNet_Subversion
+    path: /opt/xyz/data/CollabNet_Subversion
     src: "{{ efs_id }}.efs.eu-central-1.amazonaws.com:/"
     fstype: nfs4
     opts: defaults,_netdev
@@ -54,7 +54,7 @@
 
 - name: Create a symbolic link for SVN Home folder
   file:
-    src: /opt/pv/data/CollabNet_Subversion
+    src: /opt/xyz/data/CollabNet_Subversion
     dest: /opt/CollabNet_Subversion
     state: link
 
