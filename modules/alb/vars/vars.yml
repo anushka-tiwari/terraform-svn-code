@@ -1,0 +1,4 @@
+svn_https_key: "svn_private_key"
+svn_https_certificate: "svn_certificate_crt"
+efs_tag: ""
+efs_id: ""

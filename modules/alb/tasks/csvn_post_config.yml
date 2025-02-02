@@ -1,0 +1,125 @@
+---
+- name: Define the file to check
+  set_fact:
+    file_to_check: /opt/CollabNet_Subversion/initial_setup_completed
+
+- name: Check if the file exists
+  stat:
+    path: "{{ file_to_check }}"
+  register: file_check
+
+- name: Copy files if the initial setup is not completed
+  block:
+    - name: Copy files from /home/ec2-user/CollabNet_Subversion to /opt/CollabNet_Subversion
+      copy:
+        src: /home/ec2-user/CollabNet_Subversion/
+        dest: /opt/CollabNet_Subversion/
+        owner: csvn
+        group: csvn
+        mode: '0755'
+        remote_src: yes
+
+    - name: Include copy configuration files
+      include_tasks: tasks/config_files.yml
+
+    - name: Change ownership of httpbind
+      file:
+        path: /opt/CollabNet_Subversion/lib/httpd_bind/httpd_bind
+        owner: root
+        group: csvn
+        mode: '0755'
+
+    - name: Create the initial setup completed file
+      file:
+        path: "{{ file_to_check }}"
+        state: touch
+        owner: csvn
+        group: csvn
+  when: not file_check.stat.exists
+
+- name: Create a symbolic link for data
+  file:
+    src: /opt/pv/data/CollabNet_Subversion/data
+    dest: /data
+    state: link
+
+- name: Change ownership recursively
+  file:
+    path: /data
+    owner: csvn
+    group: csvn
+    state: directory
+    recurse: yes
+
+- name: Remove existing python symlink
+  file:
+    path: /opt/conda/envs/python-default/bin/python
+    state: absent
+
+- name: Create new python symlink to Python 2.7 using /bin/bash
+  ansible.builtin.shell: |
+    /bin/ln -s /opt/conda/envs/python2-default/bin/python2.7 /opt/conda/envs/python-default/bin/python
+  args:
+    executable: /bin/bash
+
+- name: Ensure the required lines are added after the description
+  blockinfile:
+    path: /usr/lib/systemd/system/apachectl.service
+    insertafter: '^Description=CollabNet Apache SVN Server'
+    block: |
+      After=remote-fs.target csvn.service
+      Requires=remote-fs.target csvn.service
+
+- name: Insert After=remote-fs.target and Requires=remote-fs.target
+  lineinfile:
+    path: /usr/lib/systemd/system/csvn.service
+    insertafter: '^Description=CollabNet SVN Server'
+    line: |
+      After=remote-fs.target
+      Requires=remote-fs.target
+
+- name: Reload systemd
+  command: systemctl daemon-reload
+
+- name: Insert below lines LDAP Verify in httpd.conf
+  lineinfile:
+    path: /opt/pv/data/CollabNet_Subversion/data/conf/httpd.conf
+    insertbefore: '^# Optimization for P&V'
+    line: |
+      LDAPVerifyServerCert On
+      LDAPTrustedGlobalCert CA_BASE64 /etc/pki/ca-trust/source/anchors/PVSPPKI01_CA.pem
+
+- name: Enable the csvn service to start on boot
+  systemd:
+    name: csvn
+    enabled: yes
+
+- name: Start the csvn service
+  systemd:
+    name: csvn
+    state: started
+
+- name: Wait for CSVN service to start
+  wait_for:
+    host: localhost
+    port: 4434
+    timeout: 300
+- name: Ensure csvn is running on port 4434
+  command: netstat -tuln | grep :4434
+  register: csvn_port_check
+  retries: 10  # Number of attempts to check the port
+  delay: 20  # Time to wait between retries (20 seconds)
+  until: csvn_port_check.rc == 0
+  # ignore_errors: yes
+
+- name: Enable to start the apacheclt in boot
+  systemd:
+    name: apachectl
+    enabled: yes
+  when: file_check.stat.exists
+
+- name: Start the apachectl service if the initial setup is completed
+  systemd:
+    name: apachectl
+    state: started
+  when: file_check.stat.exists

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Set up a Linux swap area
+mkswap /dev/xvdf
+
+# Enable the swap volume for immediate use
+swapon /dev/xvdf
+
+# Take backup of etc/fstab
+sudo cp /etc/fstab /etc/fstab.bak
+
+# Make the swap volume permanent by adding it to /etc/fstab
+echo '/dev/xvdf none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# Verify the swap volume is active
+swapon --show

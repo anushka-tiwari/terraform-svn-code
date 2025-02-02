@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  connection: local
+  become: yes
+  vars_files:
+    - vars/vars.yml
+  
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+  
+    - name: configure Swap volume
+      include_tasks: tasks/swap.yaml
+
+    - name: Register the Satellite Repo
+      include_tasks: tasks/register_satelliterepo.yml
+
+    - name: mount EFS volume
+      include_tasks: tasks/mount_efs.yml
+
+    - name: Copy CSVN configuration files
+      include_tasks: tasks/csvn_post_config.yml

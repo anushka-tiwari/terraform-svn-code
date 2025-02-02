@@ -1,0 +1,47 @@
+version: "1.0"
+
+friendlyName: terraform-svn
+x-IaC-Type: TAP
+functional: 
+  domains:
+    - devsecops
+  components:
+    - svn
+  cost-centers:
+    - 17501
+  operational-owners:
+    - infra
+requires:
+  properties:
+    instance_type:
+      alias: "instance_type"
+      x-description: "Instance type of the application server"
+      x-terraform-type: string
+    ami:
+      alias: "ami"
+      x-description: "Instance AMI ID for SVN"
+      x-terraform-type: string
+    ebs-volume-size:
+      alias: "ebs_volume_size"
+      x-description: "EBS volume size for SVN"
+      x-terraform-type: number
+    prod_server_name_1:
+      alias: "prod_server_name_1"
+      x-description: "Prod server 1 for SVN"
+      x-terraform-type: string
+    prod_server_name_2:
+      alias: "prod_server_name_2"
+      x-description: "Prod server 2 for SVN"
+      x-terraform-type: string
+    prod_server_name_3:
+      alias: "prod_server_name_3"
+      x-description: "Prod server 3 for SVN"
+      x-terraform-type: string
+    prod_server_name_4:
+      alias: "prod_server_name_4"
+      x-description: "Prod server 4 for SVN"
+      x-terraform-type: string
+    prod_server_name_5:
+      alias: "prod_server_name_5"
+      x-description: "Prod server 5 for SVN"
+      x-terraform-type: string

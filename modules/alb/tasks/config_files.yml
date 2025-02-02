@@ -1,0 +1,92 @@
+- name: Ensure jq is installed
+  yum:
+    name: jq
+    state: present
+
+- name: Ensure OpenSSL is installed
+  yum:
+    name: openssl
+    state: present
+
+- name: Remove existing csvn-wrapper.conf
+  file:
+    path: /opt/CollabNet_Subversion/data/conf/csvn-wrapper.conf
+    state: absent
+
+- name: Remove existing httpd.conf
+  file:
+    path: /opt/CollabNet_Subversion/data/conf/httpd.conf
+    state: absent
+
+- name: Copy the httpd config
+  copy:
+    src: ./files/httpd.conf
+    dest: /opt/CollabNet_Subversion/data/conf/httpd.conf
+    owner: csvn
+    group: csvn
+    mode: '0644'
+
+- name: Copy the wrapper config
+  copy:
+    src: ./files/csvn-wrapper.conf
+    dest: /opt/CollabNet_Subversion/data/conf/csvn-wrapper.conf
+    owner: csvn
+    group: csvn
+    mode: '0755'
+
+- name: Fetch wildcard certificate PFX from AWS Secrets Manager
+  shell: |
+    aws secretsmanager get-secret-value --secret-id {{ wildcard_certificate_pfx }} --region eu-central-1 --query SecretString --output=text | jq -r '.["keystore.base64"]'
+  register: svn_certificate_pfx_secret
+  no_log: True
+
+- name: Save SVN PFX certificate to file
+  shell: |
+    echo "{{ svn_certificate_pfx_secret.stdout }}" | base64 --decode > /opt/CollabNet_Subversion/data/conf/server_certificate.pfx
+  no_log: True
+
+- name: Fetch wildcard certificate password from AWS Secrets Manager
+  shell: |
+    aws secretsmanager get-secret-value --secret-id {{ wildcard_certificate_pfx }} --region eu-central-1 --query SecretString --output=text | jq -r '.["password"]'
+  register: svn_pfx_password_secret
+  no_log: True
+
+- name: Save wildcard cert password to file
+  copy:
+    content: "{{ svn_pfx_password_secret.stdout }}"
+    dest: /opt/CollabNet_Subversion/data/conf/svn_wildcard_password.pass
+    owner: csvn
+    group: csvn
+    mode: '0600'
+
+- name: Convert PFX to certificate using OpenSSL
+  shell: |
+    openssl pkcs12 -in /opt/CollabNet_Subversion/data/conf/server_certificate.pfx -clcerts -nokeys -out /opt/CollabNet_Subversion/data/conf/server.crt -passin pass:$(cat /opt/CollabNet_Subversion/data/conf/svn_wildcard_password.pass)
+  args:
+    executable: /bin/bash
+  no_log: True
+  
+- name: Convert PFX to private key using OpenSSL
+  shell: |
+    openssl pkcs12 -in /opt/CollabNet_Subversion/data/conf/server_certificate.pfx -nocerts -nodes -out /opt/CollabNet_Subversion/data/conf/server.key -passin pass:$(cat /opt/CollabNet_Subversion/data/conf/svn_wildcard_password.pass)
+  args:
+    executable: /bin/bash
+  no_log: True
+  
+- name: Set permissions for the certificate and key files
+  file:
+    path: "{{ item.path }}"
+    owner: csvn
+    group: csvn
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: /opt/CollabNet_Subversion/data/conf/server.crt, mode: '0644' }
+    - { path: /opt/CollabNet_Subversion/data/conf/server.key, mode: '0600' }
+
+- name: Clean up PFX and password files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /opt/CollabNet_Subversion/data/conf/server_certificate.pfx
+    - /opt/CollabNet_Subversion/data/conf/svn_wildcard_password.pass

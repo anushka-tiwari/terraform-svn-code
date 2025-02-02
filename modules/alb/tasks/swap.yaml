@@ -1,0 +1,12 @@
+---
+- name: Copy swap volume creation script template
+  template:
+    src: ./swapvolume.sh.j2
+    dest: /tmp/swapvolume.sh
+    mode: "0755"
+- name: Run swap volume creation script
+  command: /tmp/swapvolume.sh
+- name: Remove the swap volume creation script
+  file:
+    path: /tmp/swapvolume.sh
+    state: absent

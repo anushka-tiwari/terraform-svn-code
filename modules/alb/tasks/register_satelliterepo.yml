@@ -1,0 +1,10 @@
+    - name:  execute the script to register the satellite repo
+      shell: |
+        /bin/bash /opt/pv/sources/satellite_register_client.sh
+      args:
+        executable: /bin/bash
+
+    - name: Update repositories and OS
+      yum:
+       name: '*'
+       state: latest

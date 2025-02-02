@@ -1,0 +1,67 @@
+- name: Create the SVN mount directory in /opt/pv/data
+  file:
+    path: /opt/pv/data/CollabNet_Subversion
+    state: directory
+    owner: csvn
+    group: csvn
+    mode: '0755'
+
+- name: Get the EFS file system ID
+  command: >
+    aws efs describe-file-systems --region eu-central-1
+    --query "FileSystems[?Tags[?Key=='Name' && Value=='{{ prod_server_names if environment_abbreviation == 'prod' else 'svn' }}-{{ region }}-efs-{{ track_id }}']].FileSystemId"
+    --output text
+  register: efs_id_output
+
+- name: Set the EFS file system ID fact
+  set_fact:
+    efs_id: "{{ efs_id_output.stdout }}"
+
+
+- name: Debug efs_id value
+  debug:
+    msg: "EFS ID: '{{ efs_id }}'"
+
+
+- name: Mount the EFS file system
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ efs_id }}.efs.eu-central-1.amazonaws.com:/ /opt/pv/data/CollabNet_Subversion nfs4 defaults,_netdev 0 0"
+    state: present
+    create: yes
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+
+
+- name: Mount all file systems
+  command: mount -a
+  register: mount_result
+  until: mount_result.rc == 0
+  retries: 4
+  delay: 120
+  timeout: 60
+  when: efs_id != ""
+
+- name: Mount the SVN EFS file system
+  mount:
+    path: /opt/pv/data/CollabNet_Subversion
+    src: "{{ efs_id }}.efs.eu-central-1.amazonaws.com:/"
+    fstype: nfs4
+    opts: defaults,_netdev
+    state: mounted
+
+- name: Create a symbolic link for SVN Home folder
+  file:
+    src: /opt/pv/data/CollabNet_Subversion
+    dest: /opt/CollabNet_Subversion
+    state: link
+
+- name: Change ownership recursively of SVN Home folder
+  file:
+    path: /opt/CollabNet_Subversion
+    owner: csvn
+    group: csvn
+    state: directory
+    recurse: yes
